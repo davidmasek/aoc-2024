@@ -1,0 +1,6 @@
+#!/bin/sh
+mix format --check-formatted
+if [ $? -ne 0 ]; then
+  echo "Commit aborted: please run 'mix format' to fix formatting."
+  exit 1
+fi

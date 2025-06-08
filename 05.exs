@@ -32,20 +32,35 @@ content = File.read!("05.txt")
 [rules, updates] = String.split(content, "\n\n", trim: true)
 
 defmodule Order do
+  # check validity and gradually build a valid sequence
   def is_valid(rules, existing_updates, [next_update | remaining_updates]) do
     next_must_be_printed_before = Map.get(rules, next_update, [])
 
-    invalid =
+    # find wrongly ordered numbers
+    all_invalid =
       existing_updates
       |> Enum.map(&(&1 in next_must_be_printed_before))
 
-      # |> IO.inspect(label: next_update)
-      |> Enum.any?()
+    idx =
+      all_invalid
+      # reverse to get last index
+      |> Enum.reverse()
+      |> Enum.find_index(& &1)
 
-    case invalid do
-      true -> false
-      false -> is_valid(rules, [next_update | existing_updates], remaining_updates)
-    end
+    idx =
+      case idx do
+        nil -> 0
+        _ -> length(all_invalid) - idx
+      end
+
+    # once invalid order is detected it will stay marked as such
+    invalid = Enum.any?(all_invalid)
+
+    existing_updates =
+      List.insert_at(existing_updates, idx, next_update)
+
+    {is_valid, list} = is_valid(rules, existing_updates, remaining_updates)
+    {is_valid and !invalid, list}
   end
 
   def is_valid(rules, _existing_updates = [], remaining_updates) do
@@ -53,8 +68,8 @@ defmodule Order do
     is_valid(rules, [head], updates)
   end
 
-  def is_valid(_rules, _existing_updates, _remaining_updates = []) do
-    true
+  def is_valid(_rules, existing_updates, _remaining_updates = []) do
+    {true, existing_updates}
   end
 end
 
@@ -67,8 +82,7 @@ rules =
     |> Enum.map(&String.to_integer/1)
   end)
   |> Enum.group_by(&List.first(&1), &List.last(&1))
-
-# |> IO.inspect(charlists: :as_lists)
+  |> IO.inspect(charlists: :as_lists)
 
 updates =
   updates
@@ -79,18 +93,18 @@ updates =
     |> Enum.map(&String.to_integer/1)
   end)
 
-# |> IO.inspect(charlists: :as_lists)
-
 updates
 |> Enum.map(fn updts ->
-  valid = Order.is_valid(rules, [], updts)
+  {valid, ordered} = Order.is_valid(rules, [], updts)
   middle_idx = div(length(updts), 2)
 
   case valid do
-    true -> Enum.at(updts, middle_idx)
-    _ -> 0
+    true -> %{A: Enum.at(updts, middle_idx), B: 0}
+    _ -> %{A: 0, B: Enum.at(ordered, middle_idx)}
   end
 end)
-|> IO.inspect(label: "A")
-|> Enum.sum()
-|> IO.inspect(label: "A")
+|> IO.inspect(label: ">>", charlists: :as_lists)
+|> Enum.reduce(%{A: 0, B: 0}, fn %{A: a, B: b}, %{A: a_acc, B: b_acc} ->
+  %{A: a + a_acc, B: b + b_acc}
+end)
+|> IO.inspect(label: ">")

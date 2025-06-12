@@ -1,15 +1,15 @@
-map_raw = "
-....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..^.....
-........#.
-#.........
-......#...
-"
+# map_raw = "
+# ....#.....
+# .........#
+# ..........
+# ..#.......
+# .......#..
+# ..........
+# .#..^.....
+# ........#.
+# #.........
+# ......#...
+# "
 map_raw = File.read!("06.txt")
 
 guard_dir = :up
@@ -69,19 +69,41 @@ defmodule Maze do
     {map, next_pos_actual, next_dir}
   end
 
-  def step_all({_, nil, _}, occupied) do
-    MapSet.size(occupied)
+  def step_all({_, nil, _}, occupied, _) do
+    {occupied, :escaped}
   end
 
-  def step_all(state, occupied) do
-    {_, pos, _} = state
+  def step_all(state, occupied, prev_states) do
+    {_, pos, dir} = state
     occupied = MapSet.put(occupied, pos)
-    next_state = step(state)
-    step_all(next_state, occupied)
+    # we've been here before (incl. orientation) -> loop
+    looped = MapSet.member?(prev_states, {pos, dir})
+
+    if looped do
+      {occupied, :looped}
+    else
+      prev_states = MapSet.put(prev_states, {pos, dir})
+      next_state = step(state)
+      step_all(next_state, occupied, prev_states)
+    end
   end
 end
 
 # IO.inspect(guard_pos, label: "Guard Position")
-{map, guard_pos, guard_dir}
-|> Maze.step_all(MapSet.new())
+{occupied, _} =
+  {map, guard_pos, guard_dir}
+  |> Maze.step_all(MapSet.new(), MapSet.new())
+
+occupied
+|> Enum.count()
 |> IO.inspect(label: "A")
+
+occupied
+|> Enum.map(fn spot ->
+  new_map = Map.put(map, spot, "#")
+  {_, result} = Maze.step_all({new_map, guard_pos, guard_dir}, MapSet.new(), MapSet.new())
+  result
+end)
+|> Enum.reject(&(&1 == :escaped))
+|> Enum.count()
+|> IO.inspect(label: "B")

@@ -1,5 +1,3 @@
-from functools import cache
-
 inputs = "125 17".split()
 inputs = "20 82084 1650 3 346355 363 7975858 0".split()
 
@@ -18,17 +16,23 @@ def blink(inputs: list[str]) -> list[str]:
     return blinked
 
 
-@cache
+_cache = {}
+
+
 def blink_n(part: str, n: int) -> int:
+    if (part, n) in _cache:
+        return _cache[(part, n)]
     parts = [part]
     total = 0
     parts = blink(parts)
     if n == 1:
-        return len(parts)
+        _cache[(part, n)] = len(parts)
+        return _cache[(part, n)]
     for p in parts:
         total += blink_n(p, n - 1)
 
-    return total
+    _cache[(part, n)] = total
+    return _cache[(part, n)]
 
 
 print("initial:")

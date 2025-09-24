@@ -1,6 +1,6 @@
 # ElixirOfCode
 
-Advent of Code 2024 in Elixir *and Lua*.
+Advent of Code 2024 in Elixir *and Lua*. *And Python*.
 
 Quick links:
 - https://adventofcode.com/2024
